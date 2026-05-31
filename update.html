@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update Prices · NYC Price Check</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --wf:#1B5E3B;--wf-l:#E8F5EE;--wf-a:#C3DFD0;
+  --ld:#0044AA;--ld-l:#E6EEFF;--ld-a:#B8CCEE;
+  --tj:#921B1B;--tj-l:#FEECEC;--tj-a:#F0C0C0;
+  --bg:#F8F6F2;--sur:#fff;--bdr:#E8E4DC;
+  --tx:#1A1814;--tx2:#6B6560;--tx3:#A8A39C;
+  --green:#16a34a;--red:#dc2626;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#0F1C14,#1a2e1e 60%,#0c1a2e);padding:24px;text-align:center}
+.logo{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
+.logo em{color:#7EC8A0;font-style:normal}
+.sub{font-size:12px;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase}
+.back{display:inline-block;margin-top:10px;font-size:12px;color:rgba(255,255,255,.45);text-decoration:none}
+.back:hover{color:rgba(255,255,255,.8)}
+
+/* LAYOUT */
+.page{max-width:780px;margin:32px auto;padding:0 16px 60px}
+
+/* STEP */
+.step{background:var(--sur);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.step-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.step-num{width:30px;height:30px;border-radius:50%;background:#111;color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-title{font-size:16px;font-weight:600}
+.step-desc{font-size:13px;color:var(--tx2);margin-top:2px;line-height:1.5}
+
+/* DROP ZONES */
+.drop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:560px){.drop-grid{grid-template-columns:1fr}}
+.dz{border:2px dashed var(--bdr);border-radius:10px;padding:20px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.dz:hover{background:var(--bg)}
+.dz.wf{border-color:var(--wf-a)}.dz.wf:hover,.dz.wf.over{background:var(--wf-l);border-color:var(--wf)}
+.dz.ld{border-color:var(--ld-a)}.dz.ld:hover,.dz.ld.over{background:var(--ld-l);border-color:var(--ld)}
+.dz.tj{border-color:var(--tj-a)}.dz.tj:hover,.dz.tj.over{background:var(--tj-l);border-color:var(--tj)}
+.dz.loaded{border-style:solid}
+.dz.wf.loaded{border-color:var(--wf);background:var(--wf-l)}
+.dz.ld.loaded{border-color:var(--ld);background:var(--ld-l)}
+.dz.tj.loaded{border-color:var(--tj);background:var(--tj-l)}
+.dz-icon{font-size:24px;margin-bottom:6px}
+.dz-label{font-size:12px;font-weight:700;margin-bottom:4px}
+.dz.wf .dz-label{color:var(--wf)}.dz.ld .dz-label{color:var(--ld)}.dz.tj .dz-label{color:var(--tj)}
+.dz-hint{font-size:11px;color:var(--tx3)}
+.dz-status{font-size:11px;font-weight:600;margin-top:6px}
+.dz-status.ok{color:var(--green)}.dz-status.err{color:var(--red)}
+input[type=file]{display:none}
+
+/* TOKEN */
+.token-wrap{position:relative}
+#token{width:100%;padding:12px 16px;border:1.5px solid var(--bdr);border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;background:var(--bg);transition:border-color .2s}
+#token:focus{outline:none;border-color:#888;background:#fff}
+.token-help{font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.5}
+.token-help a{color:var(--tx2)}
+
+/* DEPLOY BUTTON */
+#deploy-btn{
+  width:100%;padding:15px;border:none;border-radius:10px;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;
+  cursor:pointer;transition:all .2s;margin-top:4px;
+  background:#111;color:#fff;
+}
+#deploy-btn:hover:not(:disabled){background:#333;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+#deploy-btn:disabled{background:#ccc;color:#888;cursor:not-allowed;transform:none;box-shadow:none}
+#deploy-btn.ready{background:linear-gradient(135deg,#0F3B25,#1B5E3B)}
+#deploy-btn.ready:hover{background:linear-gradient(135deg,#1a5c3a,#2d8a58)}
+
+/* PROGRESS / LOG */
+#log{display:none;margin-top:16px;border-radius:8px;overflow:hidden;border:1px solid var(--bdr)}
+.log-line{padding:8px 14px;font-size:12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
+.log-line:last-child{border-bottom:none}
+.log-line.ok{background:#f0fdf4;color:#166534}
+.log-line.err{background:#fef2f2;color:#991b1b}
+.log-line.info{background:#fff;color:var(--tx2)}
+.log-line.loading{background:#fffbeb;color:#92400e}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SUCCESS BANNER */
+#success{display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:20px;text-align:center;margin-top:16px}
+#success .s-icon{font-size:32px;margin-bottom:8px}
+#success .s-msg{font-size:15px;font-weight:600;color:#166534;margin-bottom:6px}
+#success .s-link{font-size:13px;color:#16a34a;text-decoration:none;font-weight:500}
+#success .s-link:hover{text-decoration:underline}
+#success .s-note{font-size:11px;color:#4ade80;margin-top:8px}
+
+/* INFO BOX */
+.info-box{background:var(--bg);border-radius:8px;padding:14px;font-size:12px;color:var(--tx2);line-height:1.7}
+.info-box b{color:var(--tx)}
+.info-box code{background:var(--bdr);padding:1px 5px;border-radius:4px;font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo"><em>🛒</em> NYC Price Check</div>
+  <div class="sub">Update Prices</div>
+  <a href="index.html" class="back">← Back to price checker</a>
+</div>
+
+<div class="page">
+
+  <!-- STEP 1: CSV files -->
+  <div class="step">
+    <div class="step-hdr">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Drop your 3 CSV files</div>
+        <div class="step-desc">Drag & drop or click each zone. Use the CSVs from your most recent scrape session.</div>
+      </div>
+    </div>
+
+    <div class="drop-grid">
+      <div class="dz wf" id="dz-wf" onclick="document.getElementById('f-wf').click()"
+           ondragover="onOver(event,'wf')" ondragleave="onLeave('wf')" ondrop="onDrop(event,'wf')">
+        <input type="file" id="f-wf" accept=".csv" onchange="loadFile('wf',this.files[0])">
+        <div class="dz-icon">🌿</div>
+        <div class="dz-label">Whole Foods 365</div>
+        <div class="dz-hint">wholefoods_365_catalogue.csv</div>
+        <div class="dz-status" id="st-wf"></div>
+      </div>
+
+      <div class="dz ld" id="dz-ld" onclick="document.getElementById('f-ld').click()"
+           ondragover="onOver(event,'ld')" ondragleave="onLeave('ld')" ondrop="onDrop(event,'ld')">
+        <input type="file" id="f-ld" accept=".csv" onchange="loadFile('ld',this.files[0])">
+        <div class="dz-icon">🛒</div>
+        <div class="dz-label">Lidl</div>
+        <div class="dz-hint">lidl_complete_catalogue.csv</div>
+        <div class="dz-status" id="st-ld"></div>
+      </div>
+
+      <div class="dz tj" id="dz-tj" onclick="document.getElementById('f-tj').click()"
+           ondragover="onOver(event,'tj')" ondragleave="onLeave('tj')" ondrop="onDrop(event,'tj')">
+        <input type="file" id="f-tj" accept=".csv" onchange="loadFile('tj',this.files[0])">
+        <div class="dz-icon">🌺</div>
+        <div class="dz-label">Trader Joe's</div>
+        <div class="dz-hint">traderjoes_catalogue.csv</div>
+        <div class="dz-status" id="st-tj"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Token -->
+  <div class="step">
+    <div class="step-hdr">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">GitHub token</div>
+        <div class="step-desc">A temporary token with <b>repo</b> access. You can revoke it right after.</div>
+      </div>
+    </div>
+    <div class="token-wrap">
+      <input id="token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" oninput="checkReady()">
+    </div>
+    <div class="token-help">
+      Get one at <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a> →
+      Note: <code>price update</code> · Expiration: <code>1 day</code> · Scope: ✅ <code>repo</code>
+      <br>Token is used only for this push and never stored anywhere.
+    </div>
+  </div>
+
+  <!-- STEP 3: Deploy -->
+  <div class="step">
+    <div class="step-hdr">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Deploy</div>
+        <div class="step-desc">Rebuilds the price checker with fresh data and pushes it live.</div>
+      </div>
+    </div>
+    <button id="deploy-btn" disabled onclick="deploy()">
+      Load all 3 CSVs to continue
+    </button>
+    <div id="log"></div>
+    <div id="success">
+      <div class="s-icon">🎉</div>
+      <div class="s-msg">Prices updated!</div>
+      <a class="s-link" href="index.html" id="s-link">→ View updated price checker</a>
+      <div class="s-note" id="s-note">Live in ~60 seconds · Remember to revoke your token</div>
+    </div>
+  </div>
+
+  <!-- INFO -->
+  <div class="step">
+    <div class="step-hdr">
+      <div class="step-num">ℹ</div>
+      <div><div class="step-title">How to get fresh CSVs</div></div>
+    </div>
+    <div class="info-box">
+      <b>When to refresh:</b> Monthly or when you notice big price changes. Prices don't shift dramatically week-to-week.<br><br>
+      <b>To re-scrape:</b> Open a new conversation with Claude, paste this:<br><br>
+      <i>"Re-scrape the Lidl, Trader Joe's and Whole Foods 365 product catalogs using the Claude in Chrome extension (same method as before). Export as CSVs: <code>lidl_complete_catalogue.csv</code>, <code>traderjoes_catalogue.csv</code>, <code>wholefoods_365_catalogue.csv</code>."</i><br><br>
+      Then come back here and drop the 3 new files above.
+    </div>
+  </div>
+
+</div>
+
+<script>
+const REPO = 'gozillanyc/price-checker';
+const STRIP_WF = ['365 by Whole Foods Market, ','365 by Whole Foods Market '];
+
+let parsed = {wf:null, ld:null, tj:null};
+
+// ── CSV PARSER ────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+  const headers = splitCSVLine(lines[0]).map(h=>h.toLowerCase().trim());
+  return lines.slice(1).map(line => {
+    const vals = splitCSVLine(line);
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = (vals[i]||'').trim());
+    return obj;
+  }).filter(r => Object.values(r).some(v=>v));
+}
+
+function splitCSVLine(line) {
+  const out = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c==='"') { inQ=!inQ; }
+    else if (c===',' && !inQ) { out.push(cur); cur=''; }
+    else { cur+=c; }
+  }
+  out.push(cur);
+  return out;
+}
+
+function processStore(rows, store) {
+  const out = [];
+  for (const r of rows) {
+    let name = (r.name||'').trim();
+    if (!name) continue;
+    if (store === 'wf') {
+      for (const p of STRIP_WF) name = name.replace(p,'');
+      name = name.trim();
+    }
+    const priceStr = (r.price||'').replace('$','').trim();
+    const price = parseFloat(priceStr);
+    if (isNaN(price)) continue;
+    out.push({
+      n: name,
+      c: (r.category||'').trim(),
+      s: (r.sub_category||'').trim(),
+      p: price
+    });
+  }
+  return out;
+}
+
+// ── FILE LOADING ──────────────────────────────────────────────────
+function onOver(e, s) { e.preventDefault(); document.getElementById('dz-'+s).classList.add('over'); }
+function onLeave(s)   { document.getElementById('dz-'+s).classList.remove('over'); }
+function onDrop(e, s) { e.preventDefault(); onLeave(s); if(e.dataTransfer.files[0]) loadFile(s, e.dataTransfer.files[0]); }
+
+function loadFile(store, file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const rows = parseCSV(e.target.result);
+      const data = processStore(rows, store);
+      if (data.length === 0) throw new Error('No valid rows found');
+      parsed[store] = data;
+      const dz = document.getElementById('dz-'+store);
+      dz.classList.add('loaded');
+      dz.querySelector('.dz-hint').textContent = file.name;
+      const st = document.getElementById('st-'+store);
+      st.className = 'dz-status ok';
+      st.textContent = '✓ '+data.length.toLocaleString()+' products';
+      checkReady();
+    } catch(err) {
+      const st = document.getElementById('st-'+store);
+      st.className = 'dz-status err';
+      st.textContent = '✗ '+err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── READY CHECK ───────────────────────────────────────────────────
+function checkReady() {
+  const allLoaded = parsed.wf && parsed.ld && parsed.tj;
+  const hasToken = document.getElementById('token').value.trim().length > 10;
+  const btn = document.getElementById('deploy-btn');
+  if (allLoaded && hasToken) {
+    btn.disabled = false;
+    btn.classList.add('ready');
+    btn.textContent = `🚀 Deploy — ${(parsed.wf.length+parsed.ld.length+parsed.tj.length).toLocaleString()} products`;
+  } else if (allLoaded) {
+    btn.disabled = false;
+    btn.classList.add('ready');
+    btn.textContent = 'Enter GitHub token to deploy';
+    btn.disabled = true;
+  } else {
+    btn.disabled = true;
+    btn.classList.remove('ready');
+    const missing = ['wf','ld','tj'].filter(s=>!parsed[s]).length;
+    btn.textContent = `Load ${missing} more CSV file${missing>1?'s':''} to continue`;
+  }
+}
+
+// ── DEPLOY ────────────────────────────────────────────────────────
+function log(type, icon, msg) {
+  const el = document.getElementById('log');
+  el.style.display = 'block';
+  const line = document.createElement('div');
+  line.className = 'log-line '+type;
+  line.innerHTML = `<span>${icon}</span> ${msg}`;
+  line.id = 'log-'+Date.now();
+  el.appendChild(line);
+  return line.id;
+}
+
+function updateLog(id, type, icon, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.className='log-line '+type; el.innerHTML=`<span>${icon}</span> ${msg}`; }
+}
+
+async function deploy() {
+  const token = document.getElementById('token').value.trim();
+  const btn = document.getElementById('deploy-btn');
+  btn.disabled = true;
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('success').style.display = 'none';
+
+  const today = new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  try {
+    // 1. Build new data JSON
+    const l1 = log('loading','<span class="spin">⟳</span>','Building data…');
+    const newData = JSON.stringify({wf:parsed.wf, ld:parsed.ld, tj:parsed.tj}, null, 0);
+    updateLog(l1,'ok','✓',`Data built — ${(newData.length/1024).toFixed(0)}KB · WF:${parsed.wf.length} Lidl:${parsed.ld.length} TJ:${parsed.tj.length}`);
+
+    // 2. Fetch current index.html from GitHub
+    const l2 = log('loading','<span class="spin">⟳</span>','Fetching current index.html from GitHub…');
+    const rawUrl = `https://raw.githubusercontent.com/${REPO}/main/index.html?t=${Date.now()}`;
+    const currentHtml = await fetch(rawUrl).then(r=>{ if(!r.ok) throw new Error('Could not fetch index.html ('+r.status+')'); return r.text(); });
+    updateLog(l2,'ok','✓',`Fetched index.html (${(currentHtml.length/1024).toFixed(0)}KB)`);
+
+    // 3. Replace data between markers
+    const l3 = log('loading','<span class="spin">⟳</span>','Injecting new prices…');
+    const START = '/*PRICES_START*/';
+    const END   = '/*PRICES_END*/';
+    const si = currentHtml.indexOf(START);
+    const ei = currentHtml.indexOf(END);
+    if (si < 0 || ei < 0) throw new Error('Price markers not found in index.html — may need a full redeploy');
+    let newHtml = currentHtml.slice(0, si+START.length) + newData + currentHtml.slice(ei);
+    // Update scrape date
+    newHtml = newHtml.replace(/<span id="scrape-date">[^<]*<\/span>/, `<span id="scrape-date">${today}</span>`);
+    updateLog(l3,'ok','✓',`Prices injected — new size: ${(newHtml.length/1024).toFixed(0)}KB`);
+
+    // 4. Get current file SHA
+    const l4 = log('loading','<span class="spin">⟳</span>','Getting file SHA from GitHub API…');
+    const metaRes = await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`, {
+      headers: {'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json'}
+    });
+    if (!metaRes.ok) {
+      const err = await metaRes.json();
+      throw new Error(`GitHub API error: ${err.message}`);
+    }
+    const meta = await metaRes.json();
+    updateLog(l4,'ok','✓',`Got SHA: ${meta.sha.slice(0,12)}…`);
+
+    // 5. Push updated file
+    const l5 = log('loading','<span class="spin">⟳</span>','Pushing to GitHub…');
+    const content = btoa(unescape(encodeURIComponent(newHtml)));
+    const pushRes = await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`, {
+      method: 'PUT',
+      headers: {'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json'},
+      body: JSON.stringify({message:`Update prices — ${today}`, content, sha: meta.sha})
+    });
+    if (!pushRes.ok) {
+      const err = await pushRes.json();
+      throw new Error(`Push failed: ${err.message}`);
+    }
+    const pushed = await pushRes.json();
+    updateLog(l5,'ok','✓',`Pushed! Commit: ${pushed.commit.sha.slice(0,12)}…`);
+
+    // Success!
+    log('ok','🎉',`All done! Live at gozillanyc.github.io/price-checker in ~60 seconds.`);
+    document.getElementById('success').style.display = 'block';
+    document.getElementById('s-note').textContent = `Updated ${today} · Live in ~60s · Revoke your token at github.com/settings/tokens`;
+    btn.textContent = '✓ Deployed successfully';
+    btn.style.background = '#16a34a';
+    btn.disabled = false;
+
+  } catch (err) {
+    log('err','✗', err.message);
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+    btn.classList.add('ready');
+  }
+}
+</script>
+</body>
+</html>
